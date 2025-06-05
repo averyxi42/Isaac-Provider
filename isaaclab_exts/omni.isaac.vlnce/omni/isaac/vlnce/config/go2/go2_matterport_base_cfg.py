@@ -301,17 +301,17 @@ class TerrainSceneCfg(InteractiveSceneCfg):
     rgbd_camera = CameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/rgbd_camera",
         offset=CameraCfg.OffsetCfg(pos=(0.1, 0.0, 0.5), rot=(-0.5, 0.5, -0.5, 0.5)),
-        spawn=sim_utils.PinholeCameraCfg(horizontal_aperture=54.0),
-        width=512,
-        height=512,
+        spawn=sim_utils.PinholeCameraCfg(horizontal_aperture=54.7/2),
+        width=640,
+        height=480,
         data_types=["rgb", "distance_to_image_plane"],
     )
     viz_rgb_camera = CameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/viz_rgb_camera",
         offset=CameraCfg.OffsetCfg(pos=(-0.8, 0.0, 0.57), rot=(-0.5, 0.5, -0.5, 0.5)),
-        spawn=sim_utils.PinholeCameraCfg(horizontal_aperture=100.0),
-        width=512,
-        height=512,
+        spawn=sim_utils.PinholeCameraCfg(horizontal_aperture=100),
+        width=640,
+        height=480,
         data_types=["rgb"],
     )
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True, debug_vis=False)
