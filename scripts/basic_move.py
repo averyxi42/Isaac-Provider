@@ -150,10 +150,25 @@ from server import run_server
 
 
 
+from planner import Planner
+controller = Planner()
+points = np.array([
+    [0, 0], [1, 0],[2, 1],[3, 2.8], 
+    [4, 2], [5, 1], [6, 1.2], [7, 2.2], 
+    [7.5, 4], [7, 6], [6, 7], [4.5, 7.2], 
+    [3, 6], [2, 4.5], [1.5, 3.5]
+])
 
+points = np.array([
+    [0, 0.1], [1, 0],[1, 1.5],[1, 2],[0.5,2.2],[0,2.3],[-1,2.3]
+])
+controller.update_waypoints(points)
+vel_command = torch.tensor([0, 0, 0.3])
+from scipy.spatial.transform import Rotation
+init_pos = env_cfg.scene.robot.init_state.pos
+
+flag = True
 while True:
-    vel_command = torch.tensor([0, 0, 0.3])
-
     obs, _, done, infos = env.step(vel_command)
 
     rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
@@ -162,6 +177,7 @@ while True:
 
     depth_image = infos['observations']['camera_obs'][0,:,:,3].clone().detach()
     depth_image_np = depth_image.cpu().numpy()
+    
     depth_image_np = cv2.rotate(depth_image_np,cv2.ROTATE_90_CLOCKWISE)
 
     # save_path_rgb = os.path.join(os.getcwd(), "rgb_image"+str(it-start_it)+".png")
@@ -170,10 +186,21 @@ while True:
 
     robot_pos_w = env.unwrapped.scene["robot"].data.root_pos_w[0].detach().cpu().numpy()
     
-    robot_pos = robot_pos_w[:3]
+    robot_pos = robot_pos_w[:3]-init_pos 
     robot_ori_full_quat = env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu().numpy()
+    robot_yaw_quat = math_utils.yaw_quat(env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu()).unsqueeze(0)
+    robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
+    if robot_yaw_angle>np.pi:
+        robot_yaw_angle-=2*np.pi
+    robot_ori_full_rpy = Rotation.from_quat(robot_ori_full_quat).as_euler('xyz')
+    if(flag):
+        init_rot = robot_yaw_angle*1
+        flag = False
 
-    print("robot_pos %s robot ori %s" % (str(robot_pos),str(robot_ori_full_quat)))
+    vel_command = controller.step(robot_pos[0],robot_pos[1],robot_yaw_angle-init_rot)
+    print(vel_command)
+    print(controller._step(robot_pos[0],robot_pos[1],robot_yaw_angle-init_rot,0))
+    print("robot_pos %s robot ori %s" % (str(robot_pos),str(robot_yaw_angle)))
     # robot_ori_full_rpy = math_utils.euler_xyz_from_quat(robot_ori_full_quat)
     
     print(rgb_image.shape)

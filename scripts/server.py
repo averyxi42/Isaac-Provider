@@ -6,6 +6,8 @@ import time
 import numpy as np
 import cv2 # For dummy image generation
 import traceback
+from protocol import *
+import json
 # --- Configuration ---
 SOCKET_HOST = '0.0.0.0'  # Listen on all available interfaces
 SOCKET_PORT = 12345      # Same port as your client expects
@@ -183,13 +185,13 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
             client_socket.sendall(pickled_payload)
             print(f"[{time.strftime('%H:%M:%S')}] Sent {payload_len} bytes of sensor data to {client_address}.")
 
-        elif request_str[:3] == "VEL":
-            msg = request_str.split()
-            print(msg)
-            x,y,omega = float(msg[1]),float(msg[2]),float(msg[3])
-            print(omega)
-            action_cb(x,y,omega)
         else:
+            header = request_str.split()[0]
+            payload_index = len(header)+1
+            for message_type in message_types:
+                if(message_type == header):
+                    action_cb(json.loads(request_str[payload_index]))
+                    return
             print(f"[{time.strftime('%H:%M:%S')}] Unknown request '{request_str}' from {client_address}. Sending error.")
             error_payload = {
                 "success": False,

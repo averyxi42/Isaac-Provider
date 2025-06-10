@@ -74,6 +74,7 @@ class Planner:
     def update_waypoints(self,waypoints):
         self.wps,self.theta,self.distance = fit_smoothing_spline(waypoints,n=500)
 
+    #gets the
     def _step(self,x,y,theta,lookahead):
         idx = get_goal(self.wps,self.distance,x,y,lookahead)
         target_pos = self.wps[idx]

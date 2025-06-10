@@ -79,7 +79,9 @@ def quat2eulers(q0, q1, q2, q3):
 
 #uses task = go2_matterport_vision. where defined?
 env_cfg = parse_env_cfg(args_cli.task, num_envs=args_cli.num_envs)
-
+env_cfg.viewer.resolution=(640,480)
+# env_cfg.sim.dt=0.05
+# ender.rendering_mode='performance'
 episode_idx = args_cli.episode_index
 dataset_file_name = os.path.join(ASSETS_DIR, "vln_ce_isaac_v1.json.gz")
 
@@ -102,7 +104,12 @@ print("scene_id: ", env_cfg.scene_id)
 print("robot_init_pos: ", env_cfg.scene.robot.init_state.pos)
 print(env_cfg)
 # initialize environment and low-level policy
-env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+env = gym.make(args_cli.task, cfg=env_cfg, render_mode='performance')
+
+# env.env.physics_dt = 0.01 #0.005
+print(env.env.step_dt)
+print(env.env.physics_dt)
+# simulation_app.close()
 
 if args_cli.history_length > 0:
     env = RslRlVecEnvHistoryWrapper(env, history_length=args_cli.history_length)
@@ -141,15 +148,20 @@ obs, infos = env.reset()
 from server import run_server,format_data
 
 vel_command = torch.tensor([0.0, 0.0, 0.0])
+waypoint_x = []
+waypoint_y = []
 
-def action_callback(x,z,omega):
-    print("applying action")
-    global vel_command
-    print(omega)
-    vel_command[0] = x
-    vel_command[1] = z
-    vel_command[2] = omega
-    print(vel_command)
+
+def action_callback(message):
+    if message.type == 'VEL':
+        global vel_command
+        print(message.omega)
+        vel_command[0] = message.x
+        vel_command[1] = message.y
+        vel_command[2] = message.omega
+        print(vel_command)
+    # print("applying action")
+
 
 rgb,depth,position,quat = None,None,None,None
 
@@ -161,6 +173,9 @@ from threading import Thread
 
 server_thread = Thread(target=run_server,kwargs={"data_cb":data_callback,"action_cb":action_callback})
 started = False
+import omni.kit.viewport.utility
+i=1
+
 while True:
     # print("velocity: %s" % str(vel_command))
     obs, _, done, infos = env.step(vel_command)
@@ -183,6 +198,12 @@ while True:
         server_thread.start()
         print("server started")
         started=True
+    if(i%10==0):
+        i=0
+        fps = omni.kit.viewport.utility.get_active_viewport().fps
+
+        print(fps)
+    i+=1
     # print("robot_pos %s robot ori %s" % (str(robot_pos),str(robot_ori_full_quat)))
     # robot_ori_full_rpy = math_utils.euler_xyz_from_quat(robot_ori_full_quat)
     
