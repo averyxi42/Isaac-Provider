@@ -300,7 +300,7 @@ class TerrainSceneCfg(InteractiveSceneCfg):
     # # camera
     rgbd_camera = CameraCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base/rgbd_camera",
-        offset=CameraCfg.OffsetCfg(pos=(0.1, 0.0, 0.5), rot=(-0.5, 0.5, -0.5, 0.5)),
+        offset=CameraCfg.OffsetCfg(pos=(0, 0.0, 0.5), rot=(-0.5, 0.5, -0.5, 0.5)),
         spawn=sim_utils.PinholeCameraCfg(horizontal_aperture=54.7/2),
         width=640,
         height=480,

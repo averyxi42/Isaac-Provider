@@ -53,8 +53,7 @@ def fit_smoothing_spline(points, smoothing_factor=0,n=1000):
         # A reasonable convention is to use the heading of the segment arriving at it.
         headings[-1] = segment_headings[-1]
         # Calculate heading for each segment start point
-        segment_headings = np.arctan2(dy, dx)
-        return points[:, 0], points[:, 1],segment_headings,np.linalg.norm(points-points[:0],axis=1)
+        return points,headings,np.linalg.norm(points-points[:1],axis=1)
     # --- 2. Spline Fitting ---
     # Fit a cubic B-spline for x(t) and y(t) separately.
     tck_x = interpolate.splrep(t, x, s=smoothing_factor, k=3)
@@ -80,7 +79,7 @@ def get_goal(wps,distance,x,y,lookahead):
     target_idx =  index+lookahead_idx
     return target_idx
 class Planner:
-    def __init__(self,lookahead =0.1,max_vx = 0.8,min_vx=0.3,max_vy=0.5,max_vw=2,cruise_vel=0.8):
+    def __init__(self,lookahead =0.1,max_vx = 2,min_vx=-0.2,max_vy=0,max_vw=2,cruise_vel=1):
         self.wps = None
         self.lookahead = lookahead
         self.max_vx,self.max_vy,self.max_vw = max_vx,max_vy,max_vw
@@ -103,14 +102,13 @@ class Planner:
         if(target_heading<-np.pi):
             target_heading+=np.pi*2
         w1 =(ddx*ddx+ddy*ddy)*10
-        if(idx<1400):
-            w2 = 0.2
-        else:
-            w2 = 0.5
-        
+
+        w2 = 1
+        if(idx<1590): #prioritize correction when not close to target
+            w2=0
         dt = (w2*target_heading+w1*dt)/(w1+w2)
         # return ddx*10,ddy*10,dt*10
-        return ddx/self.lookahead*self.cruise_vel,ddy/self.lookahead*self.cruise_vel,dt*5
+        return ddx/self.lookahead*self.cruise_vel,ddy/self.lookahead*self.cruise_vel,dt*10
     def step(self,x,y,theta):
         cmd_x,cmd_y,cmd_w = self._step(x,y,theta,self.lookahead)
         return np.clip(cmd_x,self.min_vx,self.max_vx),np.clip(cmd_y,-self.max_vy,self.max_vy),np.clip(cmd_w,-self.max_vw,self.max_vw)

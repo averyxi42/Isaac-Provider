@@ -5,6 +5,7 @@ import time
 import math
 import gzip, json
 import numpy as np
+from scipy.spatial.transform import Rotation
 # omni-isaaclab
 from omni.isaac.lab.app import AppLauncher
 
@@ -41,11 +42,11 @@ from omni.isaac.core.objects import VisualCuboid
 import gymnasium as gym
 from omni.isaac.lab.sensors.camera.utils import create_pointcloud_from_depth
 from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG
-from omni.isaac.lab.markers import VisualizationMarkers
+from omni.isaac.lab.markers import VisualizationMarkers,VisualizationMarkersCfg
 import omni.isaac.lab.utils.math as math_utils
 
-from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG
-from omni.isaac.lab.markers import VisualizationMarkers
+
+import omni.isaac.lab.sim as sim_utils
 
 from rsl_rl.runners import OnPolicyRunner
 from omni.isaac.lab_tasks.utils import get_checkpoint_path, parse_env_cfg
@@ -102,7 +103,8 @@ if os.path.exists(udf_file):
 else:
     raise ValueError(f"No USD file found in scene directory: {udf_file}")  
 if "go2" in args_cli.task:
-    env_cfg.scene.robot.init_state.pos = (episode["start_position"][0], episode["start_position"][1], episode["start_position"][2]+0.4)
+    env_cfg.scene.robot.init_state.pos = (episode["start_position"][0], episode["start_position"][1], episode["start_position"][2]+0.2)
+  
 
 print("scene_id: ", env_cfg.scene_id)
 print("robot_init_pos: ", env_cfg.scene.robot.init_state.pos)
@@ -150,18 +152,38 @@ marker_cfg = CUBOID_MARKER_CFG.copy()
 marker_cfg.prim_path = "/Visuals/Command/pos_goal_command"
 marker_cfg.markers["cuboid"].scale = (0.5, 0.5, 0.5)
 
+cfg = VisualizationMarkersCfg(
+    prim_path="/World/Visuals/testMarkers",
+    markers={
+        "marker1": sim_utils.SphereCfg(
+            radius=0.05,
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+        )
+    }
+)
 
+cfg2 = VisualizationMarkersCfg(
+    prim_path="/World/Visuals/testMarkers",
+    markers={
+        "marker1": sim_utils.SphereCfg(
+            radius=0.05,
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0)),
+        )
+    }
+)
      
 
 
 from server import run_server,format_data
 from planner import Planner
-vel_command = np.array([0,0,0.0])
+vel_command = np.array([0,0,0])
 use_planner = False
 planner = Planner()
 rgb,depth,position,quat = None,None,None,None
 identity_quat = torch.tensor([1.0, 0.0, 0.0, 0.0], device=env.unwrapped.device).repeat(1, 1)
-point_visualizer = VisualizationMarkers(marker_cfg)
+point_visualizer = VisualizationMarkers(cfg)
+
+bot_visualizer = VisualizationMarkers(cfg2)
 # point_visualizer.set_visibility(True)
 
 
@@ -181,16 +203,20 @@ def action_callback(message):
         global planner
         global position
         wps = np.vstack((message.x,-message.z)).T
-        planner.update_waypoints(wps)
         use_planner = True
         # for visualizer in visualizers:
         #     visualizer.set_visibility(False)
         # visualizers.clear()
-        translations = np.array(init_pos)[:2].reshape((1,2))+wps
-        translations = np.hstack((translations,np.ones((len(wps),1))*position[2]))
+        translations = np.hstack((wps,np.ones((len(wps),1))*0.2))
+
+        translations = translations @ init_mat.T+np.array(init_pos)
+
+        planner.update_waypoints(translations[:,:2])
 
         point_visualizer.visualize(translations)
-
+        bot_visualizer.visualize((np.array(position)+np.array([0,0,0.2])).reshape((1,3)))
+        print(position)
+        print("first waypoint: %s" % str(translations[0]))
         # for i in range(len(wps)):
         #     pos = wps[i]
   
@@ -205,9 +231,16 @@ def action_callback(message):
     # print("applying action")
 
 
+init_pos = None
+init_quat = None
+init_mat = None
 
 def data_callback():
-    global rgb,depth,position,quat
+    global rgb,depth,position,quat,init_pos,init_quat,init_mat
+    if init_pos is None:
+        init_pos = position
+        init_quat = quat
+        init_mat = Rotation.from_quat(quat,scalar_first=True).as_matrix()
     return format_data(rgb,depth,position,quat)
 
 from threading import Thread
@@ -215,7 +248,6 @@ from threading import Thread
 server_thread = Thread(target=run_server,kwargs={"data_cb":data_callback,"action_cb":action_callback})
 started = False
 i=1
-init_pos = env_cfg.scene.robot.init_state.pos
 
 while True:
     # print("velocity: %s" % str(vel_command))
@@ -234,17 +266,22 @@ while True:
     robot_pos_w = env.unwrapped.scene["robot"].data.root_pos_w[0].detach().cpu().numpy()
     
     position = robot_pos_w[:3]
-    robot_pos = robot_pos_w[:3]-init_pos 
-    print(init_pos)
     quat = env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu().numpy()
-   
-    robot_yaw_quat = math_utils.yaw_quat(env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu()).unsqueeze(0)
-    robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
-    if robot_yaw_angle>np.pi:
-        robot_yaw_angle-=2*np.pi
+
+
+
     
-    if(use_planner):
-        vel_command = planner.step(robot_pos[0],robot_pos[1],robot_yaw_angle)
+    if use_planner:
+        current_rotation = Rotation.from_quat(quat,scalar_first=True)
+        relative_rotation = current_rotation * Rotation.from_quat(init_quat,scalar_first=True).inv()
+        
+        robot_yaw_quat = math_utils.yaw_quat(torch.tensor(current_rotation.as_quat(scalar_first=True),device='cpu')).unsqueeze(0)
+        robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
+        if robot_yaw_angle>np.pi:
+            robot_yaw_angle-=2*np.pi
+        robot_pos = robot_pos_w[:3]#-init_pos 
+
+        vel_command = np.array(planner.step(robot_pos[0],robot_pos[1],robot_yaw_angle))
 
 
 
