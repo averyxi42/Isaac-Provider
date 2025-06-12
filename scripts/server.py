@@ -195,6 +195,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
                     print(request_str[payload_index:])
                     action_cb(jsonpickle.decode(request_str[payload_index:].strip()))
                     return
+
             print(f"[{time.strftime('%H:%M:%S')}] Unknown request '{request_str}' from {client_address}. Sending error.")
             error_payload = {
                 "success": False,
