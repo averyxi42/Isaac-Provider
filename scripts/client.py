@@ -26,16 +26,23 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.K_w:
-            send_action_message(VelMessage(1,0,0))
-        if event.type == pygame.K_a:
-            send_action_message(VelMessage(0,0,-0.3))
-        if event.type == pygame.K_d:
-            send_action_message(VelMessage(0,0,0.3))
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                send_action_message(VelMessage(1,0,0.0))
 
-        if event.type == pygame.K_SPACE:
-            send_action_message(VelMessage(0,0,0))
- 
+            if event.key == pygame.K_a:               
+                send_action_message(VelMessage(0,0,0.6))
+            if event.key == pygame.K_d:
+                send_action_message(VelMessage(0,0,-0.6))
+
+            if event.key == pygame.K_SPACE:
+                send_action_message(VelMessage(0,0,0))
+        if event.type == pygame.KEYUP:
+            # if event.key == pygame.K_w:
+            send_action_message(VelMessage(0,0,0.0))
+
+
+    # send_action_message(VelMessage(1,0,0))
     # send_action_message(VelMessage(1,0,0))
 
     try:

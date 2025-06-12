@@ -176,7 +176,7 @@ cfg2 = VisualizationMarkersCfg(
 
 from server import run_server,format_data
 from planner import Planner
-vel_command = np.array([0,0,0])
+vel_command = np.array([0,0,0.0])
 use_planner = False
 planner = Planner()
 rgb,depth,position,quat = None,None,None,None

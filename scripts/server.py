@@ -11,7 +11,7 @@ import jsonpickle
 # --- Configuration ---
 SOCKET_HOST = '0.0.0.0'  # Listen on all available interfaces
 SOCKET_PORT = 12345      # Same port as your client expects
-SERVER_NAME = "StandaloneDummySensorServer"
+SERVER_NAME = "StandaloneSensorActionServer"
 
 # --- Global frame counter for dummy data ---
 # Use a list to pass by reference to threads, or a Lock with a simple int
