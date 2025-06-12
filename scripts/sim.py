@@ -65,10 +65,13 @@ def main_simulation():
     #     [3, 6], [2, 4.5], [1.5, 3.5]
     # ])
     # Example 3: A sharper turn
-    points = np.array([
-    [0,0],[0.5,0.2],[1,0],[1.5,-0.2],[2,0]
-    ])
+    # points = np.array([
+    # [0,0],[0.5,0.2],[1,0],[1.5,-0.2],[2,0]
+    # ])
 
+    points = np.array([
+    [0,0],[0.5,0],[1,0],[1.5,0.5],[1,1],[0.5,1],[0,1]
+    ])*2
 
 
     # 2. Initialize Planner

@@ -79,7 +79,7 @@ def get_goal(wps,distance,x,y,lookahead):
     target_idx =  index+lookahead_idx
     return target_idx
 class Planner:
-    def __init__(self,lookahead =0.1,max_vx = 2,min_vx=-0.2,max_vy=0,max_vw=2,cruise_vel=1):
+    def __init__(self,lookahead =0.1,max_vx = 2,min_vx=-0.2,max_vy=0,max_vw=2,cruise_vel=1.2):
         self.wps = None
         self.lookahead = lookahead
         self.max_vx,self.max_vy,self.max_vw = max_vx,max_vy,max_vw
