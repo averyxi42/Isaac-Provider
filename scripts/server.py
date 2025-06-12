@@ -7,7 +7,7 @@ import numpy as np
 import cv2 # For dummy image generation
 import traceback
 from protocol import *
-import json
+import jsonpickle
 # --- Configuration ---
 SOCKET_HOST = '0.0.0.0'  # Listen on all available interfaces
 SOCKET_PORT = 12345      # Same port as your client expects
@@ -189,8 +189,11 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
             header = request_str.split()[0]
             payload_index = len(header)+1
             for message_type in message_types:
-                if(message_type == header):
-                    action_cb(json.loads(request_str[payload_index]))
+                # print(message_type.type)
+                # print(header.strip())
+                if(message_type.type == header.strip()):
+                    print(request_str[payload_index:])
+                    action_cb(jsonpickle.decode(request_str[payload_index:].strip()))
                     return
             print(f"[{time.strftime('%H:%M:%S')}] Unknown request '{request_str}' from {client_address}. Sending error.")
             error_payload = {

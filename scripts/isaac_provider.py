@@ -5,7 +5,6 @@ import time
 import math
 import gzip, json
 import numpy as np
-
 # omni-isaaclab
 from omni.isaac.lab.app import AppLauncher
 
@@ -55,6 +54,8 @@ from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
 from omni.isaac.vlnce.config import *
 from omni.isaac.vlnce.utils import ASSETS_DIR, RslRlVecEnvHistoryWrapper, VLNEnvWrapper
 
+from protocol import *
+from planner import *
 
 
 def quat2eulers(q0, q1, q2, q3):
@@ -146,20 +147,28 @@ obs, infos = env.reset()
 
 
 from server import run_server,format_data
-
-vel_command = torch.tensor([0.0, 0.0, 0.0])
-waypoint_x = []
-waypoint_y = []
-
+from planner import Planner
+vel_command = np.array([0,0,0.0])
+use_planner = False
+planner = Planner()
 
 def action_callback(message):
+    global vel_command
+    global use_planner
     if message.type == 'VEL':
-        global vel_command
         print(message.omega)
         vel_command[0] = message.x
         vel_command[1] = message.y
         vel_command[2] = message.omega
         print(vel_command)
+        use_planner = False
+    
+    if message.type == 'WAYPOINT':
+
+        global planner
+        wps = np.vstack((message.x,-message.z)).T
+        planner.update_waypoints(wps)
+        use_planner = True
     # print("applying action")
 
 
@@ -173,8 +182,8 @@ from threading import Thread
 
 server_thread = Thread(target=run_server,kwargs={"data_cb":data_callback,"action_cb":action_callback})
 started = False
-import omni.kit.viewport.utility
 i=1
+init_pos = env_cfg.scene.robot.init_state.pos
 
 while True:
     # print("velocity: %s" % str(vel_command))
@@ -192,17 +201,30 @@ while True:
     robot_pos_w = env.unwrapped.scene["robot"].data.root_pos_w[0].detach().cpu().numpy()
     
     position = robot_pos_w[:3]
+    robot_pos = robot_pos_w[:3]-init_pos 
+
     quat = env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu().numpy()
+   
+    robot_yaw_quat = math_utils.yaw_quat(env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu()).unsqueeze(0)
+    robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
+    if robot_yaw_angle>np.pi:
+        robot_yaw_angle-=2*np.pi
+    
+    if(use_planner):
+        vel_command = planner.step(robot_pos[0],robot_pos[1],robot_yaw_angle)
+
+
+
 
     if not started:
         server_thread.start()
         print("server started")
         started=True
-    if(i%10==0):
-        i=0
-        fps = omni.kit.viewport.utility.get_active_viewport().fps
+    # if(i%10==0):
+    #     i=0
+    #     fps = omni.kit.viewport.utility.get_active_viewport().fps
 
-        print(fps)
+    #     print(fps)
     i+=1
     # print("robot_pos %s robot ori %s" % (str(robot_pos),str(robot_ori_full_quat)))
     # robot_ori_full_rpy = math_utils.euler_xyz_from_quat(robot_ori_full_quat)

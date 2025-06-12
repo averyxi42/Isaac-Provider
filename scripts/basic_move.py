@@ -192,7 +192,6 @@ while True:
     robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
     if robot_yaw_angle>np.pi:
         robot_yaw_angle-=2*np.pi
-    robot_ori_full_rpy = Rotation.from_quat(robot_ori_full_quat).as_euler('xyz')
     if(flag):
         init_rot = robot_yaw_angle*1
         flag = False

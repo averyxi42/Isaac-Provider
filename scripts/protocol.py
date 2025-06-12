@@ -9,6 +9,7 @@ class VelMessage():
 class WaypointMessage():
     type = "WAYPOINT"
     def __init__(self):
-        self.wps = [] #list of x,y
+        self.x = [] #list of
+        self.z = []
 
 message_types = [VelMessage,WaypointMessage]

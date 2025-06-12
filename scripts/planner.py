@@ -22,7 +22,32 @@ def fit_smoothing_spline(points, smoothing_factor=0,n=500):
     # Unpack the points into x and y
     x = points[:, 0]
     y = points[:, 1]
-
+    num_points = points.shape[0]
+    if num_points <= 3:
+            # The 'curve' is just the original points connected by lines.
+            # We return the points' coordinates directly.
+        print(f"Warning: {num_points} points provided. Cannot fit a cubic spline (k=3). "
+                "Falling back to straight line segments.")
+        x = points[:, 0]
+        y = points[:, 1]
+        
+        # Calculate headings for the N-1 segments between points
+        dx = np.diff(x)
+        dy = np.diff(y)
+        segment_headings = np.arctan2(dy, dx)
+        
+        # Create an array of the correct size (N) to store the heading at each point
+        headings = np.zeros(num_points)
+        
+        # The heading at each point is the direction of the segment leaving it
+        headings[:-1] = segment_headings
+        
+        # For the last point, there's no leaving segment.
+        # A reasonable convention is to use the heading of the segment arriving at it.
+        headings[-1] = segment_headings[-1]
+        # Calculate heading for each segment start point
+        segment_headings = np.arctan2(dy, dx)
+        return points[:, 0], points[:, 1],segment_headings,np.linalg.norm(points-points[:0],axis=1)
     # --- 1. Parameterization ---
     # We use cumulative chordal distance as the parameter t.
     distance = np.cumsum(np.sqrt(np.sum(np.diff(points, axis=0)**2, axis=1)))
@@ -98,7 +123,7 @@ class Planner:
         w1 =(ddx*ddx+ddy*ddy)*10
         w2 = 1
         dt = (w2*target_heading+w1*dt)/(w1+w2)
-        return ddx*6,ddy*6,dt
+        return ddx*3,ddy*3,dt
     def step(self,x,y,theta):
         return self._step(x,y,theta,self.lookahead)
     
