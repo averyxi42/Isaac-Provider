@@ -44,6 +44,9 @@ from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG
 from omni.isaac.lab.markers import VisualizationMarkers
 import omni.isaac.lab.utils.math as math_utils
 
+from omni.isaac.lab.markers.config import CUBOID_MARKER_CFG
+from omni.isaac.lab.markers import VisualizationMarkers
+
 from rsl_rl.runners import OnPolicyRunner
 from omni.isaac.lab_tasks.utils import get_checkpoint_path, parse_env_cfg
 from omni.isaac.lab_tasks.utils.wrappers.rsl_rl import (
@@ -143,7 +146,12 @@ env.unwrapped.sim.set_camera_view(eye=cam_eye, target=cam_target)
 
 obs, infos = env.reset()
 
+marker_cfg = CUBOID_MARKER_CFG.copy()
+marker_cfg.prim_path = "/Visuals/Command/pos_goal_command"
+marker_cfg.markers["cuboid"].scale = (0.5, 0.5, 0.5)
 
+
+     
 
 
 from server import run_server,format_data
@@ -151,6 +159,11 @@ from planner import Planner
 vel_command = np.array([0,0,0.0])
 use_planner = False
 planner = Planner()
+rgb,depth,position,quat = None,None,None,None
+identity_quat = torch.tensor([1.0, 0.0, 0.0, 0.0], device=env.unwrapped.device).repeat(1, 1)
+point_visualizer = VisualizationMarkers(marker_cfg)
+# point_visualizer.set_visibility(True)
+
 
 def action_callback(message):
     global vel_command
@@ -166,13 +179,32 @@ def action_callback(message):
     if message.type == 'WAYPOINT':
 
         global planner
+        global position
         wps = np.vstack((message.x,-message.z)).T
         planner.update_waypoints(wps)
         use_planner = True
+        # for visualizer in visualizers:
+        #     visualizer.set_visibility(False)
+        # visualizers.clear()
+        translations = np.array(init_pos)[:2].reshape((1,2))+wps
+        translations = np.hstack((translations,np.ones((len(wps),1))*position[2]))
+
+        point_visualizer.visualize(translations)
+
+        # for i in range(len(wps)):
+        #     pos = wps[i]
+  
+
+        #     point = np.array([pos[0]+init_pos[0],pos[1]+init_pos[1],position[2]]).reshape(1, 3)
+        #     print(point)
+        #     print(position)
+        #     default_scale = point_visualizer.cfg.markers["cuboid"].scale
+        #     # import ipdb; ipdb.set_trace()
+        #     larger_scale = 2.0*torch.tensor(default_scale, device=env.unwrapped.device).repeat(1, 1)
+        #     point_visualizer.visualize(point, identity_quat,larger_scale)
     # print("applying action")
 
 
-rgb,depth,position,quat = None,None,None,None
 
 def data_callback():
     global rgb,depth,position,quat
@@ -190,6 +222,7 @@ while True:
     obs, _, done, infos = env.step(vel_command)
     rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
     rgb = rgb_image.cpu().numpy()
+    rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
     depth_image = infos['observations']['depth_obs'][0,0,:,:].clone().detach()*1000
     depth = depth_image.cpu().numpy().astype(np.uint16)
@@ -202,7 +235,7 @@ while True:
     
     position = robot_pos_w[:3]
     robot_pos = robot_pos_w[:3]-init_pos 
-
+    print(init_pos)
     quat = env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu().numpy()
    
     robot_yaw_quat = math_utils.yaw_quat(env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu()).unsqueeze(0)
