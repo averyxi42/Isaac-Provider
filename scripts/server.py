@@ -159,7 +159,7 @@ def format_data(rgb,depth,position,quat):
 
 def handle_client_connection(client_socket, client_address,sensor_data_payload=None,action_cb = None):
     """Handles a single client connection."""
-    print(f"[{time.strftime('%H:%M:%S')}] Accepted connection from {client_address}")
+    # print(f"[{time.strftime('%H:%M:%S')}] Accepted connection from {client_address}")
     try:
         # 1. Wait for a request from the client (e.g., "GET_SENSOR_DATA")
         request = client_socket.recv(1024) # Expecting a small request string
@@ -168,7 +168,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
             return
 
         request_str = request.decode().strip()
-        print(f"[{time.strftime('%H:%M:%S')}] Received request: '{request_str}' from {client_address}")
+        # print(f"[{time.strftime('%H:%M:%S')}] Received request: '{request_str}' from {client_address}")
 
         if request_str == "GET_SENSOR_DATA":
             if(sensor_data_payload is None):
@@ -183,7 +183,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
             client_socket.sendall(struct.pack('>Q', payload_len))
             # Send the pickled data
             client_socket.sendall(pickled_payload)
-            print(f"[{time.strftime('%H:%M:%S')}] Sent {payload_len} bytes of sensor data to {client_address}.")
+            # print(f"[{time.strftime('%H:%M:%S')}] Sent {payload_len} bytes of sensor data to {client_address}.")
 
         else:
             header = request_str.split()[0]
@@ -215,7 +215,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
     except Exception as e:
         print(f"[{time.strftime('%H:%M:%S')}] Error handling client {client_address}: {e}")
     finally:
-        print(f"[{time.strftime('%H:%M:%S')}] Closing connection with {client_address}")
+        # print(f"[{time.strftime('%H:%M:%S')}] Closing connection with {client_address}")
         client_socket.close()
 
 def run_server(data_cb=None,action_cb=None):

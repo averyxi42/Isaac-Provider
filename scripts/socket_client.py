@@ -84,20 +84,20 @@ def send_action_message(msg):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.settimeout(5.0) # Timeout for connection and operations
     client_socket.connect((SERVER_HOST, SERVER_PORT))
-    print("Connected to server.")
+    # print("Connected to server.")
     message = msg.type+" "+jsonpickle.encode(msg)
     client_socket.sendall(message.encode())
 
 def request_sensor_data():
-    print(f"\n[{time.strftime('%H:%M:%S')}] Attempting to connect to {SERVER_HOST}:{SERVER_PORT}...")
+    # print(f"\n[{time.strftime('%H:%M:%S')}] Attempting to connect to {SERVER_HOST}:{SERVER_PORT}...")
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.settimeout(5.0) # Timeout for connection and operations
     client_socket.connect((SERVER_HOST, SERVER_PORT))
-    print("Connected to server.")
+    # print("Connected to server.")
 
     # 1. Send request
     client_socket.sendall(REQUEST_MESSAGE)
-    print(f"Sent request: {REQUEST_MESSAGE.decode()}")
+    # print(f"Sent request: {REQUEST_MESSAGE.decode()}")
 
     # 2. Receive the length of the pickled data (8 bytes, unsigned long long)
     raw_msglen = recv_all(client_socket, 8)
@@ -106,7 +106,7 @@ def request_sensor_data():
         return None 
     
     msglen = struct.unpack('>Q', raw_msglen)[0]
-    print(f"Expecting pickled data of length: {msglen} bytes")
+    # print(f"Expecting pickled data of length: {msglen} bytes")
 
     # 3. Receive the pickled data
     pickled_payload = recv_all(client_socket, msglen)
@@ -129,7 +129,7 @@ def main():
         try:
             payload = request_sensor_data()
 
-            print("Successfully received and unpickled data.")
+            # print("Successfully received and unpickled data.")
             
             # --- Process Data ---
             if payload and payload.get("success", False):
@@ -139,8 +139,8 @@ def main():
                 server_timestamp_ns = payload.get("timestamp_server_ns")
                 
                 latency_ms = (time.time_ns() - server_timestamp_ns) / 1_000_000 if server_timestamp_ns else -1
-
-                print(f"  Server timestamp (ns): {server_timestamp_ns}, Approx E2E Latency: {latency_ms:.2f} ms")
+                if(latency_ms>500):
+                    print(f"  Server timestamp (ns): {server_timestamp_ns}, Approx E2E Latency: {latency_ms:.2f} ms")
 
                 if rgb_image is not None:
                     print(f"  RGB Image: {rgb_image.shape}, dtype: {rgb_image.dtype}")
