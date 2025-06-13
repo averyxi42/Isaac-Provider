@@ -226,7 +226,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
         # print(f"[{time.strftime('%H:%M:%S')}] Closing connection with {client_address}")
         client_socket.close()
 
-def run_server(data_cb=None,action_cb=None,planner_cb = None):
+def run_server(data_cb=lambda:None,action_cb=lambda:None,planner_cb = lambda:None):
     """Main server loop to listen for and handle connections."""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Allow address reuse immediately after server closes
