@@ -48,9 +48,9 @@ while run:
             if event.key == pygame.K_s:
                 vx = -0.5
             if event.key == pygame.K_a:               
-                o = 0.6
+                o = 1
             if event.key == pygame.K_d:
-                o = -0.6
+                o = -1
             if event.key == pygame.K_SPACE:
                 vx,vy,o = 0,0,0
             send_action_message(VelMessage(vx,vy,o))
