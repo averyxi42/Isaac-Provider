@@ -194,22 +194,26 @@ bot_visualizer = VisualizationMarkers(cfg2)
 def action_callback(message):
     global vel_command
     global use_planner
+    global position,quat
+    global planner
+
     if message.type == 'VEL':
         print(message.omega)
         vel_command[0] = message.x
         vel_command[1] = message.y
         vel_command[2] = message.omega
         print(vel_command)
+
+        # print(f"position: {position} quat: {quat}")
         use_planner = False
     if message.type == 'WAYPOINT':
-        global planner
-        global position
         wps = np.vstack((message.x,-message.z)).T
         use_planner = True
         # for visualizer in visualizers:
         #     visualizer.set_visibility(False)
         # visualizers.clear()
         translations = np.hstack((wps,np.ones((len(wps),1))*0.2))
+        print("first waypoint raw: %s" % str(translations[0]))
 
         translations = translations @ init_mat.T+np.array(init_pos)
 
@@ -217,7 +221,6 @@ def action_callback(message):
 
         point_visualizer.visualize(translations)
         bot_visualizer.visualize((np.array(position)+np.array([0,0,0.2])).reshape((1,3)))
-        print(position)
         print("first waypoint: %s" % str(translations[0]))
         # for i in range(len(wps)):
         #     pos = wps[i]
@@ -256,7 +259,7 @@ while True:
     obs, _, done, infos = env.step(vel_command)
     rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
     rgb = rgb_image.cpu().numpy()
-    rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    # rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
     depth_image = infos['observations']['depth_obs'][0,0,:,:].clone().detach()*1000
     depth = depth_image.cpu().numpy().astype(np.uint16)

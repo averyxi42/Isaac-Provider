@@ -13,6 +13,8 @@ SERVER_PORT = 12345
 REQUEST_MESSAGE = b"GET_SENSOR_DATA"
 REQUEST_INTERVAL_SEC = 1.0 # 1 Hz
 
+
+
 def recv_all(sock, n):
     """Helper function to receive n bytes from a socket."""
     data = bytearray()
@@ -80,19 +82,19 @@ def decompress_payload(compressed_payload_dict):
         decompressed_dict.pop('depth_image_dtype', None)
 
     return decompressed_dict
-def send_action_message(msg):
+def send_action_message(msg,host = SERVER_HOST):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.settimeout(5.0) # Timeout for connection and operations
-    client_socket.connect((SERVER_HOST, SERVER_PORT))
+    client_socket.connect((host, SERVER_PORT))
     # print("Connected to server.")
     message = msg.type+" "+jsonpickle.encode(msg)
     client_socket.sendall(message.encode())
 
-def request_sensor_data():
+def request_sensor_data(host = SERVER_HOST):
     # print(f"\n[{time.strftime('%H:%M:%S')}] Attempting to connect to {SERVER_HOST}:{SERVER_PORT}...")
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.settimeout(5.0) # Timeout for connection and operations
-    client_socket.connect((SERVER_HOST, SERVER_PORT))
+    client_socket.connect((host, SERVER_PORT))
     # print("Connected to server.")
 
     # 1. Send request

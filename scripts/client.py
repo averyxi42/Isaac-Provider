@@ -8,7 +8,16 @@ from collections import deque
 import pygame.colordict
 
 from protocol import *
+from argparse import ArgumentParser
 
+#preprogrammed waypoints to execute by pressing enter.
+WAYPOINTS = np.array([
+[0,0],[0.5,0.2],[1,0],[1.5,-0.2],[2,0]
+])
+
+parser = ArgumentParser()
+parser.add_argument("--host",type=str,default='localhost')
+args = parser.parse_args()
 pygame.init()
 screen_width, screen_height = 1280, 720
 screen = pygame.display.set_mode((screen_width, screen_height))
@@ -30,12 +39,21 @@ lastx = 0
 lasty = 0
 
 points = deque(np.zeros((0,2),dtype = float),maxlen=3000)
-vx,vy,o = 0,0,0
+vx,vy,omg = 0,0,0
 offset = np.array([900,300])
 
-init_pos = None
-init_rot = None
+init_T = None
+curr_T = None
+
 from scipy.spatial.transform import Rotation
+from copy import deepcopy
+
+
+
+waypointmsg = WaypointMessage()
+
+waypointmsg.x = WAYPOINTS[:,0]
+waypointmsg.z = WAYPOINTS[:,1]
 
 while run:
     clock.tick(60)
@@ -43,48 +61,57 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.KEYDOWN:
+            # print(Rotation.from_matrix(curr_T[:3,:3]).as_quat())
             if event.key == pygame.K_w:
                 vx = 1
             if event.key == pygame.K_s:
                 vx = -0.5
             if event.key == pygame.K_a:               
-                o = 0.6
+                omg = 1
             if event.key == pygame.K_d:
-                o = -0.6
+                omg = -1
             if event.key == pygame.K_SPACE:
-                vx,vy,o = 0,0,0
-            send_action_message(VelMessage(vx,vy,o))
+                vx,vy,omg = 0,0,0
+            if event.key == pygame.K_RETURN:
+                print("executing preprgrammed trajectory:")
+                translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T @ np.linalg.inv(init_T).T 
+                
+                waypointmsg.x = translations[:,0]
+                waypointmsg.z = -translations[:,1] #invert it because z is positive right, but y is positive left.
 
+                send_action_message(waypointmsg)
+                continue
+                
+            send_action_message(VelMessage(vx,vy,omg),args.host)
+            
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
                 vx = 0
             if event.key == pygame.K_s:
                 vx = 0
             if event.key == pygame.K_a:               
-                o = 0
+                omg = 0
             if event.key == pygame.K_d:
-                o = 0
+                omg = 0
             if event.key == pygame.K_SPACE:
-                vx,vy,o = 0,0,0
-            send_action_message(VelMessage(vx,vy,o))
+                vx,vy,omg = 0,0,0
+            send_action_message(VelMessage(vx,vy,omg),args.host)
         
-        if event.type ==  pygame.MOUSEBUTTONDOWN:
-            x,y = (np.array(pygame.mouse.get_pos())-offset-np.array([screen.get_rect().x,screen.get_rect().y]))*np.array([1,-1])
-            wps = np.vstack((points[-1]-init_pos,points[-1]+np.array([x,y])*10-init_pos))
+        # if event.type ==  pygame.MOUSEBUTTONDOWN:
+        #     x,y = (np.array(pygame.mouse.get_pos())-offset-np.array([screen.get_rect().x,screen.get_rect().y]))*np.array([1,-1])
+        #     wps = np.vstack((points[-1]-init_pos,points[-1]+np.array([x,y])*10-init_pos))
 
-            print(wps)
-            translations = np.hstack((wps,np.ones((len(wps),1))*0.2)) @ init_rot
+        #     print(wps)
+        #     translations = np.hstack((wps,np.ones((len(wps),1))*0.2)) @ init_rot
 
-            waypoints = WaypointMessage()
-            waypoints.x = translations[:,0]
-            waypoints.z = translations[:,1]
-            send_action_message(waypoints)
+        #     waypoints = WaypointMessage()
+        #     waypoints.x = translations[:,0]
+        #     waypoints.z = translations[:,1]
+            # send_action_message(waypoints,args.host)
 
-    # send_action_message(VelMessage(1,0,0))
-    # send_action_message(VelMessage(1,0,0))
 
     try:
-        data = request_sensor_data()
+        data = request_sensor_data(args.host)
 
     except socket.timeout:
             print(f"Socket timeout during operation with {SERVER_HOST}:{SERVER_PORT}")
@@ -104,12 +131,17 @@ while run:
         pose = data.get("pose")
         p = pose['pose']['position']
         o = pose['pose']['orientation']
+        print(o)
 
+        curr_T = np.eye(4)
+        curr_T[:3,:3] = Rotation.from_quat([o['x'],o['y'],o['z'],o['w']]).as_matrix()
+        curr_T[:3,3] = np.array([p['x'],p['y'],p['z']])
+        curr_T = deepcopy(curr_T)
+        if init_T is None:
+            init_T = deepcopy(curr_T)
+            print(init_T)
 
         points.append([p['x'],p['y']])
-        if init_pos is None:
-            init_pos = np.array(points[-1])
-            init_rot = Rotation.from_quat([o['x'],o['y'],o['z'],o['w']]).as_matrix()
 
         p = np.array(points)*np.array([[1,-1]])
 
@@ -119,7 +151,7 @@ while run:
 
         if len(points)>1:
             for i in range(1,len(points)):
-                pygame.draw.line(screen, pygame.Color('aqua'),(p[i-1]-p[-1])*40+offset, (p[i]-p[-1])*40+offset) 
+                pygame.draw.line(screen, pygame.Color('green'),(p[i-1]-p[-1])*40+offset, (p[i]-p[-1])*40+offset) 
 
         pygameSurface = pilImageToSurface(Image.fromarray(rgb_image,mode='RGB'))
         screen.blit(pygameSurface, pygameSurface.get_rect(center = (250, 250)))
