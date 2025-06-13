@@ -8,6 +8,7 @@ import cv2 # For dummy image generation
 import traceback
 from protocol import *
 import jsonpickle
+import json
 # --- Configuration ---
 SOCKET_HOST = '0.0.0.0'  # Listen on all available interfaces
 SOCKET_PORT = 12345      # Same port as your client expects
@@ -157,7 +158,7 @@ def format_data(rgb,depth,position,quat):
     }
     )
 
-def handle_client_connection(client_socket, client_address,sensor_data_payload=None,action_cb = None):
+def handle_client_connection(client_socket, client_address,sensor_data_payload=None,action_cb = None,planner_state = None):
     """Handles a single client connection."""
     # print(f"[{time.strftime('%H:%M:%S')}] Accepted connection from {client_address}")
     try:
@@ -184,7 +185,14 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
             # Send the pickled data
             client_socket.sendall(pickled_payload)
             # print(f"[{time.strftime('%H:%M:%S')}] Sent {payload_len} bytes of sensor data to {client_address}.")
-
+        elif request_str == "GET_PLANNER_STATE":
+            json_payload = json.dumps(planner_state)
+            payload_len = len(json_payload)
+            print(planner_state)
+            # Send the length of the pickled data first (unsigned long long - 8 bytes, network byte order)
+            client_socket.sendall(struct.pack('>Q', payload_len))
+            # Send the pickled data
+            client_socket.sendall(json_payload.encode())
         else:
             header = request_str.split()[0]
             payload_index = len(header)+1
@@ -194,7 +202,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
                 if(message_type.type == header.strip()):
                     print(request_str[payload_index:])
                     action_cb(jsonpickle.decode(request_str[payload_index:].strip()))
-                    return
+                    return 
 
             print(f"[{time.strftime('%H:%M:%S')}] Unknown request '{request_str}' from {client_address}. Sending error.")
             error_payload = {
@@ -218,7 +226,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
         # print(f"[{time.strftime('%H:%M:%S')}] Closing connection with {client_address}")
         client_socket.close()
 
-def run_server(data_cb=None,action_cb=None):
+def run_server(data_cb=None,action_cb=None,planner_cb = None):
     """Main server loop to listen for and handle connections."""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Allow address reuse immediately after server closes
@@ -238,7 +246,7 @@ def run_server(data_cb=None,action_cb=None):
                 # client_thread.daemon = True # So threads exit when main program exits
                 # client_thread.start()
                 if(data_cb is not None):
-                    handle_client_connection(client_socket, client_address,data_cb(),action_cb) # Sequential handling
+                    handle_client_connection(client_socket, client_address,data_cb(),action_cb,planner_cb()) # Sequential handling
                 else:
                     handle_client_connection(client_socket, client_address)
             except socket.timeout: # server_socket.accept() can timeout if set
@@ -258,4 +266,4 @@ def run_server(data_cb=None,action_cb=None):
 if __name__ == "__main__":
     # You might need to install OpenCV and NumPy if you haven't:
     # pip install opencv-python numpy
-    run_server(data_cb=generate_dummy_data)
+    run_server(data_cb=generate_dummy_data,planner_cb=lambda :{"test":"hi"})

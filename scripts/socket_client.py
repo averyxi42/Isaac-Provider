@@ -1,6 +1,7 @@
 import socket
 import pickle
 import jsonpickle
+import json
 import time
 import numpy as np
 import cv2
@@ -122,6 +123,35 @@ def request_sensor_data(host = SERVER_HOST):
 
     return payload
 
+def request_planner_state(host = SERVER_HOST):
+    # print(f"\n[{time.strftime('%H:%M:%S')}] Attempting to connect to {SERVER_HOST}:{SERVER_PORT}...")
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.settimeout(5.0) # Timeout for connection and operations
+    client_socket.connect((host, SERVER_PORT))
+    # print("Connected to server.")
+
+    # 1. Send request
+    client_socket.sendall(b"GET_PLANNER_STATE")
+    # print(f"Sent request: {REQUEST_MESSAGE.decode()}")
+
+    # 2. Receive the length of the pickled data (8 bytes, unsigned long long)
+    raw_msglen = recv_all(client_socket, 8)
+    if not raw_msglen:
+        print("Connection closed by server before sending data length.")
+        return None 
+    
+    msglen = struct.unpack('>Q', raw_msglen)[0]
+    # print(f"Expecting pickled data of length: {msglen} bytes")
+
+    # 3. Receive the pickled data
+    json_payload = recv_all(client_socket, msglen).decode()
+    if not json_payload:
+        print("Connection closed by server before sending full payload.")
+        return None
+
+    # 4. Deserialize
+    payload = json.loads(json_payload)
+    return payload
 def main():
     print("Agent Socket Client Started")
     while True:

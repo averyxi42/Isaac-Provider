@@ -85,6 +85,8 @@ class Planner:
         self.max_vx,self.max_vy,self.max_vw = max_vx,max_vy,max_vw
         self.min_vx = min_vx
         self.cruise_vel = cruise_vel
+
+        self.xgoal,self.ygoal,self.thetagoal = None,None,None
     def update_waypoints(self,waypoints):
         self.wps,self.theta,self.distance = fit_smoothing_spline(waypoints,n=1600)
     #gets the
@@ -109,14 +111,24 @@ class Planner:
             target_heading+=np.pi*2
         w1 =(ddx*ddx+ddy*ddy)*10
 
-        w2 = 1
-        if(idx<1590): #prioritize correction when not close to target
-            w2=0
+        w2 = 0
+        if idx>1590: #prioritize correction when not close to target
+            w2 = 1
+            w1 = 0
         dt = (w2*target_heading+w1*dt)/(w1+w2)
         # return ddx*10,ddy*10,dt*10
-        return ddx/self.lookahead*self.cruise_vel,ddy/self.lookahead*self.cruise_vel,dt*10
+        return ddx,ddy,dt
+    
+    # get the dispacement vector between the robot 
+    def get_tracking_error(self):
+        return self._step(self.x,self.y,self.theta,0)
     def step(self,x,y,theta):
+        self.xgoal,self.ygoal,self.thetagoal = x,y,theta # keep track of current target
+
         cmd_x,cmd_y,cmd_w = self._step(x,y,theta,self.lookahead)
+        
+        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*10 #Proportional control
+
         return np.clip(cmd_x,self.min_vx,self.max_vx),np.clip(cmd_y,-self.max_vy,self.max_vy),np.clip(cmd_w,-self.max_vw,self.max_vw)
 # --- Main part of the script ---
 if __name__ == "__main__":
