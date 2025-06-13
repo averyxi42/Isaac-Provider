@@ -61,6 +61,7 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.KEYDOWN:
+            # print(Rotation.from_matrix(curr_T[:3,:3]).as_quat())
             if event.key == pygame.K_w:
                 vx = 1
             if event.key == pygame.K_s:
@@ -76,7 +77,7 @@ while run:
                 translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T @ np.linalg.inv(init_T).T 
                 
                 waypointmsg.x = translations[:,0]
-                waypointmsg.z = translations[:,1]
+                waypointmsg.z = -translations[:,1] #invert it because z is positive right, but y is positive left.
 
                 send_action_message(waypointmsg)
                 continue
@@ -130,15 +131,18 @@ while run:
         pose = data.get("pose")
         p = pose['pose']['position']
         o = pose['pose']['orientation']
+        print(o)
 
         curr_T = np.eye(4)
-        curr_T[:3,:3] = Rotation.from_quat([o['x'],o['y'],-o['z'],o['w']]).as_matrix()
-        curr_T[:3,3] = np.array([p['x'],-p['y'],p['z']])
+        curr_T[:3,:3] = Rotation.from_quat([o['x'],o['y'],o['z'],o['w']]).as_matrix()
+        curr_T[:3,3] = np.array([p['x'],p['y'],p['z']])
         curr_T = deepcopy(curr_T)
-        points.append([p['x'],p['y']])
         if init_T is None:
             init_T = deepcopy(curr_T)
             print(init_T)
+
+        points.append([p['x'],p['y']])
+
         p = np.array(points)*np.array([[1,-1]])
 
         server_timestamp_ns = data.get("timestamp_server_ns")

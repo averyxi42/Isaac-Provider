@@ -190,18 +190,22 @@ bot_visualizer = VisualizationMarkers(cfg2)
 def action_callback(message):
     global vel_command
     global use_planner
+    global position,quat
+    global planner
+
     if message.type == 'VEL':
         print(message.omega)
         vel_command[0] = message.x
         vel_command[1] = message.y
         vel_command[2] = message.omega
         print(vel_command)
+
+        # print(f"position: {position} quat: {quat}")
         use_planner = False
     
     if message.type == 'WAYPOINT':
 
-        global planner
-        global position
+        # global position
         wps = np.vstack((message.x,-message.z)).T
         use_planner = True
         # for visualizer in visualizers:
@@ -212,13 +216,10 @@ def action_callback(message):
 
         translations = translations @ init_mat.T+np.array(init_pos)
 
-        print(init_mat)
-        print(init_pos)
         planner.update_waypoints(translations[:,:2])
 
         point_visualizer.visualize(translations)
         bot_visualizer.visualize((np.array(position)+np.array([0,0,0.2])).reshape((1,3)))
-        print(position)
         print("first waypoint: %s" % str(translations[0]))
         # for i in range(len(wps)):
         #     pos = wps[i]
