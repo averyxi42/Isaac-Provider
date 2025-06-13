@@ -30,7 +30,7 @@ lastx = 0
 lasty = 0
 
 points = deque(np.zeros((0,2),dtype = float),maxlen=3000)
-x,y,o = 0,0,0
+vx,vy,o = 0,0,0
 offset = np.array([900,300])
 
 init_pos = None
@@ -44,29 +44,29 @@ while run:
             run = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
-                x = 1
+                vx = 1
             if event.key == pygame.K_s:
-                x = -0.5
+                vx = -0.5
             if event.key == pygame.K_a:               
                 o = 0.6
             if event.key == pygame.K_d:
                 o = -0.6
             if event.key == pygame.K_SPACE:
-                x,y,o = 0,0,0
-            send_action_message(VelMessage(x,y,o))
+                vx,vy,o = 0,0,0
+            send_action_message(VelMessage(vx,vy,o))
 
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
-                x = 0
+                vx = 0
             if event.key == pygame.K_s:
-                x = 0
+                vx = 0
             if event.key == pygame.K_a:               
                 o = 0
             if event.key == pygame.K_d:
                 o = 0
             if event.key == pygame.K_SPACE:
-                x,y,o = 0,0,0
-            send_action_message(VelMessage(x,y,o))
+                vx,vy,o = 0,0,0
+            send_action_message(VelMessage(vx,vy,o))
         
         if event.type ==  pygame.MOUSEBUTTONDOWN:
             x,y = (np.array(pygame.mouse.get_pos())-offset-np.array([screen.get_rect().x,screen.get_rect().y]))*np.array([1,-1])
@@ -78,7 +78,7 @@ while run:
             waypoints = WaypointMessage()
             waypoints.x = translations[:,0]
             waypoints.z = translations[:,1]
-            # send_action_message(waypoints)
+            send_action_message(waypoints)
 
     # send_action_message(VelMessage(1,0,0))
     # send_action_message(VelMessage(1,0,0))
