@@ -208,9 +208,12 @@ def action_callback(message):
         #     visualizer.set_visibility(False)
         # visualizers.clear()
         translations = np.hstack((wps,np.ones((len(wps),1))*0.2))
+        print("first waypoint raw: %s" % str(translations[0]))
 
         translations = translations @ init_mat.T+np.array(init_pos)
 
+        print(init_mat)
+        print(init_pos)
         planner.update_waypoints(translations[:,:2])
 
         point_visualizer.visualize(translations)
@@ -254,7 +257,7 @@ while True:
     obs, _, done, infos = env.step(vel_command)
     rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
     rgb = rgb_image.cpu().numpy()
-    rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    # rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
     depth_image = infos['observations']['depth_obs'][0,0,:,:].clone().detach()*1000
     depth = depth_image.cpu().numpy().astype(np.uint16)
