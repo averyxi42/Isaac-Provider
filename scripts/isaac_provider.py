@@ -182,7 +182,7 @@ from server import run_server,format_data
 from planner import Planner
 vel_command = np.array([0,0,0.0])
 use_planner = False
-planner = Planner()
+planner = Planner(cruise_vel=0.8)
 rgb,depth,position,quat = None,None,None,None
 identity_quat = torch.tensor([1.0, 0.0, 0.0, 0.0], device=env.unwrapped.device).repeat(1, 1)
 point_visualizer = VisualizationMarkers(cfg)
@@ -248,9 +248,17 @@ def data_callback():
         init_mat = Rotation.from_quat(quat_wxyz_to_xyzw(quat)).as_matrix()
     return format_data(rgb,depth,position,quat)
 
+def planner_callback():
+
+    global planner,use_planner
+    try:
+        ex,ey,_ = planner.get_tracking_error()
+        return {'err_x':ex,'err_y':ey,"cmd_x":planner.cmd_x,"cmd_y":planner.cmd_y,"cmd_w":planner.cmd_w}
+    except:
+        return {}
 from threading import Thread
 
-server_thread = Thread(target=run_server,kwargs={"data_cb":data_callback,"action_cb":action_callback})
+server_thread = Thread(target=run_server,kwargs={"data_cb":data_callback,"action_cb":action_callback,"planner_cb":planner_callback})
 started = False
 i=1
 

@@ -188,7 +188,6 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
         elif request_str == "GET_PLANNER_STATE":
             json_payload = json.dumps(planner_state)
             payload_len = len(json_payload)
-            print(planner_state)
             # Send the length of the pickled data first (unsigned long long - 8 bytes, network byte order)
             client_socket.sendall(struct.pack('>Q', payload_len))
             # Send the pickled data
@@ -257,7 +256,7 @@ def run_server(data_cb=lambda:None,action_cb=lambda:None,planner_cb = lambda:Non
             except Exception as e:
                 print(f"Error in server accept loop: {e}")
                 print(traceback.format_exc())
-                break # Or continue, depending on desired robustness
+                continue # Or continue, depending on desired robustness
 
     finally:
         print(f"{SERVER_NAME} is shutting down.")

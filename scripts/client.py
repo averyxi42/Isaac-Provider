@@ -30,7 +30,7 @@ def pilImageToSurface(pilImage):
 
 clock = pygame.time.Clock()
 
-from socket_client import request_sensor_data,send_action_message
+from socket_client import request_sensor_data,send_action_message,request_planner_state
 
 run = True
 data = None
@@ -112,6 +112,10 @@ while run:
 
     try:
         data = request_sensor_data(args.host)
+        my_dict = request_planner_state(args.host)
+        decimal_places = 3
+        rounded_dict = {k: round(v, decimal_places) if isinstance(v, float) else v for k, v in my_dict.items()}
+        # print(rounded_dict)
 
     except socket.timeout:
             print(f"Socket timeout during operation with {SERVER_HOST}:{SERVER_PORT}")
@@ -131,7 +135,6 @@ while run:
         pose = data.get("pose")
         p = pose['pose']['position']
         o = pose['pose']['orientation']
-        print(o)
 
         curr_T = np.eye(4)
         curr_T[:3,:3] = Rotation.from_quat([o['x'],o['y'],o['z'],o['w']]).as_matrix()
@@ -155,4 +158,12 @@ while run:
 
         pygameSurface = pilImageToSurface(Image.fromarray(rgb_image,mode='RGB'))
         screen.blit(pygameSurface, pygameSurface.get_rect(center = (250, 250)))
+        font = pygame.font.Font('freesansbold.ttf', 32)
+
+        # create a text surface object,
+        # on which text is drawn on it.
+        green = (0, 255, 0)
+        blue = (0, 0, 128)
+        text = font.render(str(rounded_dict), True, green, blue)
+        screen.blit(text,(10,600))
         pygame.display.flip()

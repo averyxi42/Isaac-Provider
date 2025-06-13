@@ -121,15 +121,17 @@ class Planner:
     
     # get the dispacement vector between the robot 
     def get_tracking_error(self):
-        return self._step(self.x,self.y,self.theta,0)
+        return self._step(self.xgoal,self.ygoal,0,0)
+    
     def step(self,x,y,theta):
         self.xgoal,self.ygoal,self.thetagoal = x,y,theta # keep track of current target
 
         cmd_x,cmd_y,cmd_w = self._step(x,y,theta,self.lookahead)
-        
-        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*10 #Proportional control
 
-        return np.clip(cmd_x,self.min_vx,self.max_vx),np.clip(cmd_y,-self.max_vy,self.max_vy),np.clip(cmd_w,-self.max_vw,self.max_vw)
+        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*10 #Proportional control
+        self.cmd_x,self.cmd_y,self.cmd_w = np.clip(cmd_x,self.min_vx,self.max_vx),np.clip(cmd_y,-self.max_vy,self.max_vy),np.clip(cmd_w,-self.max_vw,self.max_vw)
+
+        return self.cmd_x,self.cmd_y,self.cmd_w
 # --- Main part of the script ---
 if __name__ == "__main__":
     # Define a sequence of 2D points.
