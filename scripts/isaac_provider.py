@@ -61,6 +61,10 @@ from omni.isaac.vlnce.utils import ASSETS_DIR, RslRlVecEnvHistoryWrapper, VLNEnv
 from protocol import *
 from planner import *
 
+def quat_wxyz_to_xyzw(quat):
+    return np.array([quat[1], quat[2], quat[3], quat[0]])
+def quat_xyzw_to_wxyz(quat):
+    return np.array([quat[3], quat[0], quat[1], quat[2]])
 
 def quat2eulers(q0, q1, q2, q3):
     """
@@ -197,9 +201,7 @@ def action_callback(message):
         vel_command[2] = message.omega
         print(vel_command)
         use_planner = False
-    
     if message.type == 'WAYPOINT':
-
         global planner
         global position
         wps = np.vstack((message.x,-message.z)).T
@@ -240,7 +242,7 @@ def data_callback():
     if init_pos is None:
         init_pos = position
         init_quat = quat
-        init_mat = Rotation.from_quat(quat,scalar_first=True).as_matrix()
+        init_mat = Rotation.from_quat(quat_wxyz_to_xyzw(quat)).as_matrix()
     return format_data(rgb,depth,position,quat)
 
 from threading import Thread
@@ -250,7 +252,7 @@ started = False
 i=1
 
 while True:
-    # print("velocity: %s" % str(vel_command))
+    print("velocity: %s" % str(vel_command))
     obs, _, done, infos = env.step(vel_command)
     rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
     rgb = rgb_image.cpu().numpy()
@@ -272,10 +274,10 @@ while True:
 
     
     if use_planner:
-        current_rotation = Rotation.from_quat(quat,scalar_first=True)
-        relative_rotation = current_rotation * Rotation.from_quat(init_quat,scalar_first=True).inv()
+        current_rotation = Rotation.from_quat(quat_wxyz_to_xyzw(quat))
+        relative_rotation = current_rotation * Rotation.from_quat(quat_wxyz_to_xyzw(init_quat)).inv()
         
-        robot_yaw_quat = math_utils.yaw_quat(torch.tensor(current_rotation.as_quat(scalar_first=True),device='cpu')).unsqueeze(0)
+        robot_yaw_quat = math_utils.yaw_quat(torch.tensor(quat_xyzw_to_wxyz(current_rotation.as_quat()),device='cpu')).unsqueeze(0)
         robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
         if robot_yaw_angle>np.pi:
             robot_yaw_angle-=2*np.pi

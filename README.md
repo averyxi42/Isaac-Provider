@@ -71,6 +71,10 @@ python scripts/demo_planner.py --task=h1_matterport_vision --load_run=2024-11-03
 ```
 To train your own low-level policies, please refer to the [legged-loco](https://github.com/yang-zj1026/legged-loco) repo.
 
+Run isaac server:
+```
+MESA_GL_VERSION_OVERRIDE=4.6 bash /dependencies/IsaacLab/isaaclab.sh -p ~/Projects/Isaac-Provider/scripts/isaac_provider.py --task=go2_matterport_vision --history_length=9 --load_run=2024-09-25_23-22-02 --episode_index 15
+```
 ## Citation
 If you use VLN-CE-Isaac in your work please consider citing our paper:
 ```

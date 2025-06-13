@@ -7,8 +7,8 @@ import cv2
 import struct
 
 # --- Configuration ---
-SERVER_HOST = '35.3.201.75' # IP address of the sensor machine (use 'localhost' if running on the same machine)'localhost'#
-SERVER_HOST = 'localhost'
+# SERVER_HOST = '35.3.201.75' # IP address of the sensor machine (use 'localhost' if running on the same machine)'localhost'#
+SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 12345
 REQUEST_MESSAGE = b"GET_SENSOR_DATA"
 REQUEST_INTERVAL_SEC = 1.0 # 1 Hz

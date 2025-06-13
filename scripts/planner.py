@@ -97,6 +97,12 @@ class Planner:
         ddy = np.sin(-theta)*dx+np.cos(-theta)*dy
         dt = np.arctan2(ddy,ddx)
         target_heading = self.theta[idx]-theta
+        # stop if distance is close to target
+        if abs(ddx)<0.05 and abs(ddy)<0.05:
+            ddx,ddy = 0,0
+        if abs(target_heading)<5*np.pi/180:
+            target_heading = 0
+
         if(target_heading>np.pi):
             target_heading-=np.pi*2
         if(target_heading<-np.pi):
