@@ -207,7 +207,7 @@ def action_callback(message):
         # print(f"position: {position} quat: {quat}")
         use_planner = False
     if message.type == 'WAYPOINT':
-        wps = np.vstack((message.x,-message.z)).T
+        wps = np.vstack((message.x,message.z)).T
         use_planner = True
         # for visualizer in visualizers:
         #     visualizer.set_visibility(False)
