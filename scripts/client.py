@@ -287,9 +287,9 @@ while run:
             pygame.draw.circle(screen,pygame.Color(int(np.clip(r,0.1,255)),int(np.clip(g,0.1,255)),int(np.clip(b,0.1,255))),(point[:2]*scale*np.array([1,-1])).astype(int)+ROBOT_VIS_CENTER,4,1)
 
         for x in np.linspace(-scale*n_line_x,scale*n_line_x,2*n_line_x):
-            pygame.draw.line(screen, pygame.Color('white'),ROBOT_VIS_CENTER+np.array([x,-scale*n_line_y]), ROBOT_VIS_CENTER+np.array([x,scale*n_line_y])) 
+            pygame.draw.line(screen, (30*magnification_scale,30*magnification_scale,30*magnification_scale),ROBOT_VIS_CENTER+np.array([x,-scale*n_line_y]), ROBOT_VIS_CENTER+np.array([x,scale*n_line_y])) 
         for y in np.linspace(-scale*n_line_y,scale*n_line_y,2*n_line_y):
-            pygame.draw.line(screen, pygame.Color('white'),ROBOT_VIS_CENTER+np.array([-scale*n_line_x,y]), ROBOT_VIS_CENTER+np.array([scale*n_line_x,y])) 
+            pygame.draw.line(screen, (30*magnification_scale,30*magnification_scale,30*magnification_scale),ROBOT_VIS_CENTER+np.array([-scale*n_line_x,y]), ROBOT_VIS_CENTER+np.array([scale*n_line_x,y])) 
 
         if len(points)>1:
             for i in range(1,len(points)):
@@ -309,7 +309,7 @@ while run:
         r = mean_distance*scale
         rect = pygame.Rect(0, 0, r*2,r*2)
         rect.center = ROBOT_VIS_CENTER
-        pygame.draw.arc(screen,(255-mean_distance*50,mean_distance*50,0),rect,curr_yaw-0.5,curr_yaw+0.5,int(8-mean_distance**2))
+        pygame.draw.arc(screen,(255-mean_distance*50,mean_distance*50,0),rect,curr_yaw-0.7,curr_yaw+0.7,int(8-mean_distance**2))
 
 
         draw_compass_arrow(screen,ROBOT_VIS_CENTER[0],ROBOT_VIS_CENTER[1],curr_yaw)
