@@ -233,7 +233,6 @@ def action_callback(message):
         #     # import ipdb; ipdb.set_trace()
         #     larger_scale = 2.0*torch.tensor(default_scale, device=env.unwrapped.device).repeat(1, 1)
         #     point_visualizer.visualize(point, identity_quat,larger_scale)
-    # print("applying action")
 
 
 init_pos = None
@@ -288,14 +287,13 @@ try:
             current_rotation = Rotation.from_quat(quat_wxyz_to_xyzw(quat))
             relative_rotation = current_rotation * Rotation.from_quat(quat_wxyz_to_xyzw(init_quat)).inv()
             
-            robot_yaw_quat = math_utils.yaw_quat(torch.tensor(quat_xyzw_to_wxyz(current_rotation.as_quat()),device='cpu')).unsqueeze(0)
-            robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
+            robot_yaw_angle = current_rotation.as_euler('zyx')[0]
             if robot_yaw_angle>np.pi:
                 robot_yaw_angle-=2*np.pi
             robot_pos = robot_pos_w[:3]#-init_pos 
-
+            print("trying")
             vel_command = np.array(planner.step(robot_pos[0],robot_pos[1],robot_yaw_angle))
-
+            print("done")
 
 
 
@@ -319,6 +317,8 @@ try:
         # print(infos['measurements'].keys())
 
         # print(obs.shape)
+except Exception as e:
+    print(e)
 finally:
     simulation_app.close()
     print("closed!!!")

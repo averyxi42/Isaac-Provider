@@ -13,9 +13,14 @@ from argparse import ArgumentParser
 from planner import fit_smoothing_spline
 HFOV = 72
 #preprogrammed waypoints to execute by pressing enter.
+# WAYPOINTS = np.array([
+# [0,0],[0.5,-0.3],[1,0.2],[1.5,0],[2,-0.2],[2.5,0]
+# ])
+
 WAYPOINTS = np.array([
-[0,0],[0.5,-0.3],[1,0.2],[1.5,0],[2,-0.2],[2.5,0]
+[0,0]
 ])
+
 
 MAGNIFICATION_OPTIONS = [1,2,4,6,8]
 magnification_choice = 3
@@ -142,6 +147,14 @@ while run:
                 vy = 0.5
             if event.key == pygame.K_SPACE:
                 vx,vy,omg = vx*2,vy*2,omg*2
+            if event.key == pygame.K_BACKSPACE:
+                if(WAYPOINTS.shape[0]>1):
+                    WAYPOINTS = WAYPOINTS[:-1]
+                if(WAYPOINTS.shape[0]>1):
+                    translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T# @ np.linalg.inv(init_T).T 
+
+            if event.key == pygame.K_DELETE:
+                WAYPOINTS = WAYPOINTS[:1]
             if event.key == pygame.K_RETURN:
                 print("executing preprgrammed trajectory:")
                 translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T# @ np.linalg.inv(init_T).T 
@@ -177,16 +190,19 @@ while run:
             
             send_action_message(VelMessage(vx,vy,omg),args.host)
         
-        # if event.type ==  pygame.MOUSEBUTTONDOWN:
-        #     x,y = (np.array(pygame.mouse.get_pos())-offset-np.array([screen.get_rect().x,screen.get_rect().y]))*np.array([1,-1])
-        #     wps = np.vstack((points[-1]-init_pos,points[-1]+np.array([x,y])*10-init_pos))
+        if event.type ==  pygame.MOUSEBUTTONDOWN:
+            mx,my = (np.array(pygame.mouse.get_pos())-ROBOT_VIS_CENTER*window.get_width()/screen_width-np.array([window.get_rect().x,window.get_rect().y]))*np.array([1,-1])/scale/window.get_width()*screen_width
+            click_pos= np.linalg.inv(curr_T) @ np.array([mx+curr_T[0,3],my+curr_T[1,3],0.2,1])
+            WAYPOINTS = np.vstack((WAYPOINTS,click_pos[:2].reshape((1,2))))
+            translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T# @ np.linalg.inv(init_T).T 
+            # wps = np.vstack((points[-1]-init_pos,points[-1]+np.array([x,y])*10-init_pos))
 
-        #     print(wps)
-        #     translations = np.hstack((wps,np.ones((len(wps),1))*0.2)) @ init_rot
+            # print(wps)
+            # translations = np.hstack((wps,np.ones((len(wps),1))*0.2)) @ init_rot
 
-        #     waypoints = WaypointMessage()
-        #     waypoints.x = translations[:,0]
-        #     waypoints.z = translations[:,1]
+            # waypoints = WaypointMessage()
+            # waypoints.x = translations[:,0]
+            # waypoints.z = translations[:,1]
             # send_action_message(waypoints,args.host)
 
 
@@ -324,12 +340,17 @@ while run:
         screen.blit(path_text,(BORDER,480+BORDER*3.5))
 
         waypoint_text = "[WAYPOINTS] "
-        for coords in WAYPOINTS:
-            waypoint_text+=f"{coords[0]:.1f} {coords[1]:.1f} | "
-        waypoint_text = font.render(waypoint_text,True,green)
+        if(WAYPOINTS.shape[0]==1):
+            waypoint_text+="click map to add waypoint, BACKSPACE to discard last, DELETE to clear all"
+            waypoint_text = font.render(waypoint_text,True,(255,255,255))
+
+        else:
+            for coords in WAYPOINTS:
+                waypoint_text+=f"{coords[0]:.1f} {coords[1]:.1f} | "
+            waypoint_text = font.render(waypoint_text,True,green)
         screen.blit(waypoint_text,(BORDER,480+BORDER*5))
 
-        instructions = font.render("[HELP] move: wasd |sprint: space | run_waypoint: ENTER | zoom in: m | zoom out: n",True,(255,255,255))
+        instructions = font.render("[CONTROLS] move: wasd | sprint: space | run_waypoint: ENTER | zoom in: m | zoom out: n",True,(255,255,255),blue)
         screen.blit(instructions,(BORDER,480+BORDER*6.5))
 
         screen = pygame.transform.scale(screen, (window.get_width() , window.get_width()*screen_height/screen_width ))

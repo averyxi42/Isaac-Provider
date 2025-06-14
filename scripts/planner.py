@@ -134,10 +134,11 @@ class Planner:
         self.xgoal,self.ygoal,self.thetagoal = x,y,theta # keep track of current target
 
         cmd_x,cmd_y,cmd_w = self._step(x,y,theta,self.lookahead)
-        cmd_x/=(1+6*np.abs(cmd_w)) #slow down if the turning loop can't keep up
+        cmd_x/=(1+10*np.abs(cmd_w)) #slow down if the turning loop can't keep up
 
-        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*3 #Proportional control
-        cmd_w+=self._dtheta_ds(x,y)*cmd_x#/(1+2*np.abs(cmd_w)) #feedforward control
+        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*2 #Proportional control
+        if(len(self.wps>3)):
+            cmd_w+=self._dtheta_ds(x,y)*cmd_x#/(1+2*np.abs(cmd_w)) #feedforward control
         self.cmd_x,self.cmd_y,self.cmd_w = np.clip(cmd_x,self.min_vx,self.max_vx),np.clip(cmd_y,-self.max_vy,self.max_vy),np.clip(cmd_w,-self.max_vw,self.max_vw)
 
         return self.cmd_x,self.cmd_y,self.cmd_w

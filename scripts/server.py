@@ -163,7 +163,7 @@ def handle_client_connection(client_socket, client_address,sensor_data_payload=N
     # print(f"[{time.strftime('%H:%M:%S')}] Accepted connection from {client_address}")
     try:
         # 1. Wait for a request from the client (e.g., "GET_SENSOR_DATA")
-        request = client_socket.recv(1024) # Expecting a small request string
+        request = client_socket.recv(8172) # Expecting a small request string
         if not request:
             print(f"[{time.strftime('%H:%M:%S')}] Client {client_address} disconnected before sending request.")
             return
