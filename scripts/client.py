@@ -14,7 +14,7 @@ from planner import fit_smoothing_spline
 HFOV = 72
 #preprogrammed waypoints to execute by pressing enter.
 WAYPOINTS = np.array([
-[0,0],[0.5,0.2],[1,0],[1.5,-0.2],[2,0]
+[0,0],[0.5,-0.3],[1,0.2],[1.5,0],[2,-0.2],[2.5,0]
 ])
 
 MAGNIFICATION_OPTIONS = [1,2,4,6,8]
@@ -296,7 +296,8 @@ while run:
                 pygame.draw.line(screen, pygame.Color('yellow'),(p[i-1]-p[-1])*scale+ROBOT_VIS_CENTER, (p[i]-p[-1])*scale+ROBOT_VIS_CENTER,2) 
 
         if translations is not None:
-            spline,_,_ = fit_smoothing_spline(translations[:,:2],16)
+
+            spline,_,_ = fit_smoothing_spline(translations[:,:2],n=100)
             for i in range(1,len(spline)):
                 pygame.draw.line(screen, pygame.Color('green'),(spline[i-1,:2]-curr_T[:2,3])*np.array([1,-1])*scale+ROBOT_VIS_CENTER, (spline[i,:2]-curr_T[:2,3])*np.array([1,-1])*scale+ROBOT_VIS_CENTER,1) 
         pygameSurface = pilImageToSurface(Image.fromarray(rgb_image,mode='RGB'))

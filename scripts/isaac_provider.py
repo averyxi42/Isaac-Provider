@@ -182,7 +182,7 @@ from server import run_server,format_data
 from planner import Planner
 vel_command = np.array([0,0,0.0])
 use_planner = False
-planner = Planner(cruise_vel=0.8)
+planner = Planner(cruise_vel=1.2,max_vw=2)
 rgb,depth,position,quat = None,None,None,None
 identity_quat = torch.tensor([1.0, 0.0, 0.0, 0.0], device=env.unwrapped.device).repeat(1, 1)
 point_visualizer = VisualizationMarkers(cfg)
@@ -261,63 +261,64 @@ from threading import Thread
 server_thread = Thread(target=run_server,kwargs={"data_cb":data_callback,"action_cb":action_callback,"planner_cb":planner_callback})
 started = False
 i=1
+try:
+    while True:
+        print("velocity: %s" % str(vel_command))
+        obs, _, done, infos = env.step(vel_command)
+        rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
+        rgb = rgb_image.cpu().numpy()
+        # rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
-while True:
-    print("velocity: %s" % str(vel_command))
-    obs, _, done, infos = env.step(vel_command)
-    rgb_image = infos['observations']['camera_obs'][0,:,:,:3].clone().detach()
-    rgb = rgb_image.cpu().numpy()
-    # rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        depth_image = infos['observations']['depth_obs'][0,0,:,:].clone().detach()*1000
+        depth = depth_image.cpu().numpy().astype(np.uint16)
 
-    depth_image = infos['observations']['depth_obs'][0,0,:,:].clone().detach()*1000
-    depth = depth_image.cpu().numpy().astype(np.uint16)
+        # save_path_rgb = os.path.join(os.getcwd(), "rgb_image"+str(it-start_it)+".png")
 
-    # save_path_rgb = os.path.join(os.getcwd(), "rgb_image"+str(it-start_it)+".png")
+        # proprio_go2 = infos['observations']['policy'].clone().detach().cpu().numpy()
 
-    # proprio_go2 = infos['observations']['policy'].clone().detach().cpu().numpy()
-
-    robot_pos_w = env.unwrapped.scene["robot"].data.root_pos_w[0].detach().cpu().numpy()
-    
-    position = robot_pos_w[:3]
-    quat = env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu().numpy()
-
-
-
-    
-    if use_planner:
-        current_rotation = Rotation.from_quat(quat_wxyz_to_xyzw(quat))
-        relative_rotation = current_rotation * Rotation.from_quat(quat_wxyz_to_xyzw(init_quat)).inv()
+        robot_pos_w = env.unwrapped.scene["robot"].data.root_pos_w[0].detach().cpu().numpy()
         
-        robot_yaw_quat = math_utils.yaw_quat(torch.tensor(quat_xyzw_to_wxyz(current_rotation.as_quat()),device='cpu')).unsqueeze(0)
-        robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
-        if robot_yaw_angle>np.pi:
-            robot_yaw_angle-=2*np.pi
-        robot_pos = robot_pos_w[:3]#-init_pos 
-
-        vel_command = np.array(planner.step(robot_pos[0],robot_pos[1],robot_yaw_angle))
+        position = robot_pos_w[:3]
+        quat = env.unwrapped.scene["robot"].data.root_quat_w[0].detach().cpu().numpy()
 
 
 
+        
+        if use_planner:
+            current_rotation = Rotation.from_quat(quat_wxyz_to_xyzw(quat))
+            relative_rotation = current_rotation * Rotation.from_quat(quat_wxyz_to_xyzw(init_quat)).inv()
+            
+            robot_yaw_quat = math_utils.yaw_quat(torch.tensor(quat_xyzw_to_wxyz(current_rotation.as_quat()),device='cpu')).unsqueeze(0)
+            robot_yaw_angle = math_utils.euler_xyz_from_quat(robot_yaw_quat)[2].numpy()[0]
+            if robot_yaw_angle>np.pi:
+                robot_yaw_angle-=2*np.pi
+            robot_pos = robot_pos_w[:3]#-init_pos 
 
-    if not started:
-        server_thread.start()
-        print("server started")
-        started=True
-    # if(i%10==0):
-    #     i=0
-    #     fps = omni.kit.viewport.utility.get_active_viewport().fps
-
-    #     print(fps)
-    i+=1
-    # print("robot_pos %s robot ori %s" % (str(robot_pos),str(robot_ori_full_quat)))
-    # robot_ori_full_rpy = math_utils.euler_xyz_from_quat(robot_ori_full_quat)
-    
-    # print(rgb_image.shape)
+            vel_command = np.array(planner.step(robot_pos[0],robot_pos[1],robot_yaw_angle))
 
 
-    # print(infos['observations'].keys())
-    # print(infos['measurements'].keys())
 
-    # print(obs.shape)
-simulation_app.close()
-print("closed!!!")
+
+        if not started:
+            server_thread.start()
+            print("server started")
+            started=True
+        # if(i%10==0):
+        #     i=0
+        #     fps = omni.kit.viewport.utility.get_active_viewport().fps
+
+        #     print(fps)
+        i+=1
+        # print("robot_pos %s robot ori %s" % (str(robot_pos),str(robot_ori_full_quat)))
+        # robot_ori_full_rpy = math_utils.euler_xyz_from_quat(robot_ori_full_quat)
+        
+        # print(rgb_image.shape)
+
+
+        # print(infos['observations'].keys())
+        # print(infos['measurements'].keys())
+
+        # print(obs.shape)
+finally:
+    simulation_app.close()
+    print("closed!!!")

@@ -79,7 +79,7 @@ def get_goal(wps,distance,x,y,lookahead):
     target_idx =  index+lookahead_idx
     return target_idx
 class Planner:
-    def __init__(self,lookahead =0.1,max_vx = 2,min_vx=-0.2,max_vy=0,max_vw=2,cruise_vel=1.2):
+    def __init__(self,lookahead =0.1,max_vx = 2,min_vx=-0.2,max_vy=0,max_vw=2,cruise_vel=0.8):
         self.wps = None
         self.lookahead = lookahead
         self.max_vx,self.max_vy,self.max_vw = max_vx,max_vy,max_vw
@@ -90,6 +90,13 @@ class Planner:
     def update_waypoints(self,waypoints):
         self.wps,self.theta,self.distance = fit_smoothing_spline(waypoints,n=1600)
     #gets the
+    def _dtheta_ds(self,x,y):
+        idx = get_goal(self.wps,self.distance,x,y,self.lookahead)
+        if(idx==len(self.wps)-1):
+            return 0
+        self.dtheta = self.theta[idx+1]-self.theta[idx]
+        self.ds = self.distance[idx+1]-self.distance[idx]
+        return self.dtheta/self.ds #use chain rule to get dtheta/dt
     def _step(self,x,y,theta,lookahead):
         idx = get_goal(self.wps,self.distance,x,y,lookahead)
         target_pos = self.wps[idx]
@@ -100,16 +107,16 @@ class Planner:
         dt = np.arctan2(ddy,ddx)
         target_heading = self.theta[idx]-theta
         # stop if distance is close to target
-        if abs(ddx)<0.05 and abs(ddy)<0.05:
-            ddx,ddy = 0,0
-        if abs(target_heading)<5*np.pi/180:
-            target_heading = 0
+        # if abs(ddx)<0.05 and abs(ddy)<0.05:
+        #     ddx,ddy = 0,0
+        # if abs(target_heading)<5*np.pi/180:
+        #     target_heading = 0
 
         if(target_heading>np.pi):
             target_heading-=np.pi*2
         if(target_heading<-np.pi):
             target_heading+=np.pi*2
-        w1 =(ddx*ddx+ddy*ddy)*10
+        w1 =(ddx*ddx+ddy*ddy)*2
 
         w2 = 0
         if idx>1590: #prioritize correction when not close to target
@@ -127,8 +134,10 @@ class Planner:
         self.xgoal,self.ygoal,self.thetagoal = x,y,theta # keep track of current target
 
         cmd_x,cmd_y,cmd_w = self._step(x,y,theta,self.lookahead)
+        cmd_x/=(1+6*np.abs(cmd_w)) #slow down if the turning loop can't keep up
 
-        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*10 #Proportional control
+        cmd_x,cmd_y,cmd_w = cmd_x/self.lookahead*self.cruise_vel,cmd_y/self.lookahead*self.cruise_vel,cmd_w*3 #Proportional control
+        cmd_w+=self._dtheta_ds(x,y)*cmd_x#/(1+2*np.abs(cmd_w)) #feedforward control
         self.cmd_x,self.cmd_y,self.cmd_w = np.clip(cmd_x,self.min_vx,self.max_vx),np.clip(cmd_y,-self.max_vy,self.max_vy),np.clip(cmd_w,-self.max_vw,self.max_vw)
 
         return self.cmd_x,self.cmd_y,self.cmd_w

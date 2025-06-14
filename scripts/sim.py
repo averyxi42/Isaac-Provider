@@ -69,10 +69,12 @@ def main_simulation():
     # [0,0],[0.5,0.2],[1,0],[1.5,-0.2],[2,0]
     # ])
 
+    # points = np.array([
+    # [0,0],[0.5,0],[1,0],[1.5,0.5],[1,1],[0.5,1],[0,1]
+    # ])*2
     points = np.array([
-    [0,0],[0.5,0],[1,0],[1.5,0.5],[1,1],[0.5,1],[0,1]
-    ])*2
-
+    [0,0],[0.5,0],[1,0.2],[1.5,0],[2,-0.2],[2.5,0]
+    ])
 
     # 2. Initialize Planner
     lookahead_distance = 0.2  # Pure pursuit lookahead distance
@@ -93,7 +95,7 @@ def main_simulation():
                                    planned_wps_x[1] - planned_wps_x[0])
     else:
         initial_theta = 0.0
-    # initial_theta = -np.pi
+    initial_theta = np.pi
     robot = SimulatedHolonomicRobot(x=initial_x, y=initial_y, theta=initial_theta)
 
     # 4. Simulation Parameters
