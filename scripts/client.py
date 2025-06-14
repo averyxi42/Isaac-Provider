@@ -233,12 +233,14 @@ while run:
         # print(np.max(py))
 
         pcd  = np.stack([depth_image,-px,py],axis=-1)
+        #generalized mean
+        power = -20
         distances = np.linalg.norm(pcd,axis=2) #depth image to distance image.\
-        mean_distance = np.mean(distances)
+        mean_distance = (np.sum(distances**power)/640/480)**(1/power)#np.mean(distances)
 
 
         # print(f"mean distance {mean_distance}")
-        # print(f"weighted distance: {(np.sum(distances**power)/len(distances))**(1/power)}")
+        # print(f"weighted distance: {}")
         # print(f"min distance {np.min(distances[depth_image.reshape((-1))>0.05])}")
 
         pose = data.get("pose")
@@ -298,7 +300,7 @@ while run:
         screen.blit(pygameSurface, (BORDER,BORDER))
         font = pygame.font.SysFont('Courier', 25)#pygame.font.Font('freesansbold.ttf', 32)
         
-     
+        mean_distance = np.clip(mean_distance,0,5)
         # Create a Rect object 
         r = mean_distance*scale
         rect = pygame.Rect(0, 0, r*2,r*2)
