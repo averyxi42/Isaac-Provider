@@ -125,6 +125,8 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.KEYDOWN:
+            translations = None
+
             # print(Rotation.from_matrix(curr_T[:3,:3]).as_quat())
             if event.key == pygame.K_w:
                 vx = 0.5
