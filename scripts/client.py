@@ -63,13 +63,17 @@ while run:
         if event.type == pygame.KEYDOWN:
             # print(Rotation.from_matrix(curr_T[:3,:3]).as_quat())
             if event.key == pygame.K_w:
-                vx = 1
+                vx = 0.5
             if event.key == pygame.K_s:
                 vx = -0.5
             if event.key == pygame.K_a:               
-                omg = 1
+                omg = 0.5
             if event.key == pygame.K_d:
-                omg = -1
+                omg = -0.5
+            if event.key == pygame.K_q:
+                vy = -0.5
+            if event.key == pygame.K_e:
+                vy = 0.5
             if event.key == pygame.K_SPACE:
                 vx,vy,omg = 0,0,0
             if event.key == pygame.K_RETURN:
@@ -79,10 +83,10 @@ while run:
                 waypointmsg.x = translations[:,0]
                 waypointmsg.z = -translations[:,1] #invert it because z is positive right, but y is positive left.
 
-                send_action_message(waypointmsg)
+                send_action_message(waypointmsg, host=args.host)
                 continue
                 
-            send_action_message(VelMessage(vx,vy,omg),args.host)
+            send_action_message(VelMessage(vx,vy,omg), host=args.host)
             
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_w:
@@ -93,6 +97,10 @@ while run:
                 omg = 0
             if event.key == pygame.K_d:
                 omg = 0
+            if event.key == pygame.K_q:
+                vy = 0
+            if event.key == pygame.K_e:
+                vy = 0
             if event.key == pygame.K_SPACE:
                 vx,vy,omg = 0,0,0
             send_action_message(VelMessage(vx,vy,omg),args.host)
