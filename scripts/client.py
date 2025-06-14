@@ -52,9 +52,6 @@ from copy import deepcopy
 
 waypointmsg = WaypointMessage()
 
-waypointmsg.x = WAYPOINTS[:,0]
-waypointmsg.z = WAYPOINTS[:,1]
-
 while run:
     clock.tick(60)
     for event in pygame.event.get():
@@ -81,7 +78,7 @@ while run:
                 translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T# @ np.linalg.inv(init_T).T 
                 
                 waypointmsg.x = translations[:,0]
-                waypointmsg.z = translations[:,1] #invert it because z is positive right, but y is positive left.
+                waypointmsg.y = translations[:,1] #invert it because z is positive right, but y is positive left.
 
                 send_action_message(waypointmsg, host=args.host)
                 continue
