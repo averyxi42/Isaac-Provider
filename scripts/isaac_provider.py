@@ -215,7 +215,7 @@ def action_callback(message):
         translations = np.hstack((wps,np.ones((len(wps),1))*0.2))
         print("first waypoint raw: %s" % str(translations[0]))
 
-        translations = translations @ init_mat.T+np.array(init_pos)
+        # translations = translations @ init_mat.T+np.array(init_pos)
 
         planner.update_waypoints(translations[:,:2])
 

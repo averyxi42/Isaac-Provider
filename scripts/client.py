@@ -74,7 +74,7 @@ while run:
                 vx,vy,omg = 0,0,0
             if event.key == pygame.K_RETURN:
                 print("executing preprgrammed trajectory:")
-                translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T @ np.linalg.inv(init_T).T 
+                translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T# @ np.linalg.inv(init_T).T 
                 
                 waypointmsg.x = translations[:,0]
                 waypointmsg.z = -translations[:,1] #invert it because z is positive right, but y is positive left.
