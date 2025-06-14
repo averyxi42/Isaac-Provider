@@ -11,7 +11,7 @@ import pygame.colordict
 from protocol import *
 from argparse import ArgumentParser
 from planner import fit_smoothing_spline
-
+HFOV = 72
 #preprogrammed waypoints to execute by pressing enter.
 WAYPOINTS = np.array([
 [0,0],[0.5,0.2],[1,0],[1.5,-0.2],[2,0]
@@ -27,8 +27,7 @@ pygame.init()
 BORDER = 30
 ROBOT_VIS_CENTER = np.array([BORDER*2+640+320,240+BORDER])
 screen_width, screen_height = 640*2+BORDER*3, 720+20
-screen = pygame.display.set_mode((screen_width, screen_height))
-
+window = pygame.display.set_mode((screen_width, screen_height),pygame.RESIZABLE)
 pygame.display.set_caption("SG-VLN WEBSOCKET CLIENT")
 
 def pilImageToSurface(pilImage):
@@ -120,6 +119,7 @@ from copy import deepcopy
 waypointmsg = WaypointMessage()
 translations = None
 while run:
+
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -215,13 +215,15 @@ while run:
             client_socket.close()
 
     if data and data.get("success", False):
+        screen = pygame.Surface((screen_width, screen_height))
+
         latency_ms = int((time.time_ns() - data.get('timestamp_server_ns',-1000000)) / 1000000)
 
         rgb_image = data.get("rgb_image")
         depth_image = data.get("depth_image").astype(float)/1000.0
         # print(np.max(depth_image))
         # convert depth image to distance image
-        cw = np.arctan(54.7/2/180*np.pi)
+        cw = np.arctan(HFOV/2/180*np.pi)
         ch = cw/640*480
         yv, xv = np.meshgrid(np.linspace(-ch,ch,480),np.linspace(-cw,cw,640), indexing='ij')
         px,py = xv*depth_image,yv*depth_image
@@ -297,9 +299,9 @@ while run:
      
         # Create a Rect object 
         r = mean_distance*scale
-        rect = pygame.Rect(0, 0, r,r)
+        rect = pygame.Rect(0, 0, r*2,r*2)
         rect.center = ROBOT_VIS_CENTER
-        pygame.draw.arc(screen,(255-mean_distance*50,mean_distance*50,0),rect,curr_yaw-0.5,curr_yaw+0.5,6)
+        pygame.draw.arc(screen,(255-mean_distance*50,mean_distance*50,0),rect,curr_yaw-0.5,curr_yaw+0.5,int(8-mean_distance**2))
 
 
         draw_compass_arrow(screen,ROBOT_VIS_CENTER[0],ROBOT_VIS_CENTER[1],curr_yaw)
@@ -321,4 +323,6 @@ while run:
         instructions = font.render("[HELP] move: wasd | run_waypoint: ENTER | zoom in: m | zoom out: n",True,(255,255,255))
         screen.blit(instructions,(BORDER,480+BORDER*6.5))
 
+        screen = pygame.transform.scale(screen, (window.get_width() , window.get_width()*screen_height/screen_width ))
+        window.blit(screen, (0, 0))
         pygame.display.flip()
