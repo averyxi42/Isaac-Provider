@@ -141,7 +141,7 @@ while run:
             if event.key == pygame.K_e:
                 vy = 0.5
             if event.key == pygame.K_SPACE:
-                vx,vy,omg = 0,0,0
+                vx,vy,omg = vx*2,vy*2,omg*2
             if event.key == pygame.K_RETURN:
                 print("executing preprgrammed trajectory:")
                 translations = np.hstack((WAYPOINTS,np.ones((len(WAYPOINTS),1))*0.2,np.ones((len(WAYPOINTS),1)))) @  curr_T.T# @ np.linalg.inv(init_T).T 
@@ -173,7 +173,7 @@ while run:
             if event.key == pygame.K_e:
                 vy = 0
             if event.key == pygame.K_SPACE:
-                vx,vy,omg = 0,0,0
+                vx,vy,omg = vx/2,vy/2,omg/2
             
             send_action_message(VelMessage(vx,vy,omg),args.host)
         
@@ -194,12 +194,16 @@ while run:
         data = request_sensor_data(args.host)
         my_dict = request_planner_state(args.host)
         formatted_dict = {key: f"{value:+.2f}" for key, value in my_dict.items()}
-        planner_message = "[PLANNER] "
-        for key,value in formatted_dict.items():
-            planner_message+=key
-            planner_message+=": "
-            planner_message+=value
-            planner_message+=" | "
+        if(translations is not None):
+            planner_message = "[PLANNER] "
+
+            for key,value in formatted_dict.items():
+                planner_message+=key
+                planner_message+=": "
+                planner_message+=value
+                planner_message+=" | "
+        else:
+            planner_message= f"[TELEOP] x: {vx:+.2f} y: {vy:+.2f} z: {omg:+.2f}"
         # decimal_places = 3
         # rounded_dict = {k: round(v, decimal_places) if isinstance(v, float) else v for k, v in my_dict.items()}
         # print(rounded_dict)
@@ -234,7 +238,7 @@ while run:
 
         pcd  = np.stack([depth_image,-px,py],axis=-1)
         #generalized mean
-        power = -20
+        power = -50
         distances = np.linalg.norm(pcd,axis=2) #depth image to distance image.\
         mean_distance = (np.sum(distances**power)/640/480)**(1/power)#np.mean(distances)
 
@@ -324,7 +328,7 @@ while run:
         waypoint_text = font.render(waypoint_text,True,green)
         screen.blit(waypoint_text,(BORDER,480+BORDER*5))
 
-        instructions = font.render("[HELP] move: wasd | run_waypoint: ENTER | zoom in: m | zoom out: n",True,(255,255,255))
+        instructions = font.render("[HELP] move: wasd |sprint: space | run_waypoint: ENTER | zoom in: m | zoom out: n",True,(255,255,255))
         screen.blit(instructions,(BORDER,480+BORDER*6.5))
 
         screen = pygame.transform.scale(screen, (window.get_width() , window.get_width()*screen_height/screen_width ))
